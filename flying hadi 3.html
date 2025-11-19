@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #1a1a2e;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+        /* City skyline background */
+        
+        .city-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+        
+        .skyline {
+            position: absolute;
+            bottom: 0;
+            width: 200%;
+            height: 60%;
+            background: linear-gradient(to bottom, #0f3460 0%, #16213e 50%, #1a1a2e 100%);
+            animation: moveCity 30s linear infinite;
+        }
+        
+        @keyframes moveCity {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+        
+        .building {
+            position: absolute;
+            bottom: 0;
+            background: linear-gradient(to right, #0f3460, #16213e);
+            box-shadow: inset -2px 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .building::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient( 0deg, transparent, transparent 20px, rgba(255, 255, 255, 0.03) 20px, rgba(255, 255, 255, 0.03) 40px);
+            pointer-events: none;
+        }
+        
+        .window {
+            position: absolute;
+            width: 8px;
+            height: 12px;
+            background: #ffd93d;
+            box-shadow: 0 0 10px #ffd93d;
+            animation: windowBlink 3s ease-in-out infinite;
+        }
+        
+        @keyframes windowBlink {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
+        }
+        /* Stars in night sky */
+        
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 3px white;
+            animation: twinkle 2s ease-in-out infinite;
+        }
+        
+        @keyframes twinkle {
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.3;
+                transform: scale(0.8);
+            }
+        }
+        /* Flying cars */
+        
+        .flying-car {
+            position: absolute;
+            width: 40px;
+            height: 15px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a6f);
+            border-radius: 5px;
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.8);
+            animation: flyCar 15s linear infinite;
+        }
+        
+        .flying-car::before {
+            content: '';
+            position: absolute;
+            width: 15px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            top: 2px;
+            left: 5px;
+            border-radius: 3px;
+        }
+        
+        @keyframes flyCar {
+            0% {
+                left: -50px;
+            }
+            100% {
+                left: 100%;
+            }
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 400px;
+            height: 600px;
+            background: linear-gradient(to bottom, #0f3460 0%, #16213e 50%, #1a1a2e 100%);
+            border: 3px solid #00d4ff;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5), 0 20px 60px rgba(0, 0, 0, 0.8), inset 0 0 50px rgba(0, 212, 255, 0.1);
+            z-index: 10;
+            transform-style: preserve-3d;
+            animation: containerFloat 6s ease-in-out infinite;
+        }
+        
+        @keyframes containerFloat {
+            0%,
+            100% {
+                transform: translateY(0) rotateX(0deg);
+            }
+            50% {
+                transform: translateY(-10px) rotateX(2deg);
+            }
+        }
+        
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #startScreen,
+        #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(10, 25, 47, 0.95);
+            backdrop-filter: blur(10px);
+            color: white;
+            z-index: 10;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        #gameOverScreen {
+            display: none;
+        }
+        
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #00d4ff, #7b2ff7, #f107a3);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease infinite;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+            transform: perspective(500px) rotateX(10deg);
+        }
+        
+        @keyframes gradientShift {
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+        
+        .button {
+            padding: 15px 40px;
+            font-size: 24px;
+            background: linear-gradient(45deg, #00d4ff, #7b2ff7);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.5), 0 5px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+            transform: perspective(500px) translateZ(0);
+        }
+        
+        .button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .button:hover {
+            transform: perspective(500px) translateZ(20px) scale(1.05);
+            box-shadow: 0 0 40px rgba(0, 212, 255, 0.8), 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .button:active {
+            transform: perspective(500px) translateZ(10px) scale(0.95);
+        }
+        
+        .score {
+            font-size: 32px;
+            margin: 10px;
+            background: linear-gradient(45deg, #ffd93d, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 20px rgba(255, 217, 61, 0.5);
+            animation: scoreFloat 2s ease-in-out infinite;
+        }
+        
+        @keyframes scoreFloat {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+        
+        .instructions {
+            font-size: 18px;
+            margin: 20px;
+            text-align: center;
+            line-height: 1.6;
+        }
+        
+        #currentScore {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 48px;
+            background: linear-gradient(45deg, #00d4ff, #7b2ff7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+            z-index: 5;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.8);
+            animation: scoreGlow 2s ease-in-out infinite;
+        }
+        
+        @keyframes scoreGlow {
+            0%,
+            100% {
+                filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.8));
+            }
+            50% {
+                filter: drop-shadow(0 0 20px rgba(123, 47, 247, 0.8));
+            }
+        }
+        /* Cloud animations */
+        
+        .cloud {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 100px;
+            backdrop-filter: blur(5px);
+            animation: float 20s linear infinite;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+        
+        @keyframes float {
+            from {
+                left: -100px;
+            }
+            to {
+                left: 450px;
+            }
+        }
+        /* Neon glow effects */
+        
+        .neon-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+            animation: neonMove 3s linear infinite;
+        }
+        
+        @keyframes neonMove {
+            0% {
+                left: -100%;
+            }
+            100% {
+                left: 100%;
+            }
+        }
+        /* 3D Perspective grid */
+        
+        .grid-lines {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 200px;
+            background: repeating-linear-gradient( 0deg, transparent, transparent 20px, rgba(0, 212, 255, 0.1) 20px, rgba(0, 212, 255, 0.1) 21px), repeating-linear-gradient( 90deg, transparent, transparent 20px, rgba(0, 212, 255, 0.1) 20px, rgba(0, 212, 255, 0.1) 21px);
+            transform: perspective(500px) rotateX(60deg);
+            animation: gridScroll 2s linear infinite;
+        }
+        
+        @keyframes gridScroll {
+            0% {
+                transform: perspective(500px) rotateX(60deg) translateY(0);
+            }
+            100% {
+                transform: perspective(500px) rotateX(60deg) translateY(20px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- City Background -->
+    <div class="city-background">
+        <!-- Stars -->
+        <div class="star" style="top: 10%; left: 10%; animation-delay: 0s;"></div>
+        <div class="star" style="top: 20%; left: 30%; animation-delay: 0.5s;"></div>
+        <div class="star" style="top: 15%; left: 60%; animation-delay: 1s;"></div>
+        <div class="star" style="top: 25%; left: 80%; animation-delay: 1.5s;"></div>
+        <div class="star" style="top: 35%; left: 15%; animation-delay: 2s;"></div>
+        <div class="star" style="top: 30%; left: 50%; animation-delay: 0.3s;"></div>
+        <div class="star" style="top: 40%; left: 70%; animation-delay: 1.2s;"></div>
+        <div class="star" style="top: 8%; left: 45%; animation-delay: 0.8s;"></div>
+
+        <!-- Flying cars -->
+        <div class="flying-car" style="top: 20%; animation-delay: 0s;"></div>
+        <div class="flying-car" style="top: 35%; animation-delay: 5s;"></div>
+        <div class="flying-car" style="top: 50%; animation-delay: 10s;"></div>
+
+        <!-- City skyline -->
+        <div class="skyline" id="skyline"></div>
+    </div>
+
+    <div id="gameContainer">
+        <!-- 3D Grid -->
+        <div class="grid-lines"></div>
+
+        <!-- Neon lines -->
+        <div class="neon-line" style="top: 30%; width: 100%; animation-delay: 0s;"></div>
+        <div class="neon-line" style="top: 60%; width: 100%; animation-delay: 1s;"></div>
+
+        <!-- Decorative clouds -->
+        <div class="cloud" style="width: 60px; height: 30px; top: 80px; animation-delay: 0s;"></div>
+        <div class="cloud" style="width: 80px; height: 40px; top: 150px; animation-delay: -10s;"></div>
+        <div class="cloud" style="width: 70px; height: 35px; top: 220px; animation-delay: -5s;"></div>
+
+        <!-- Game Canvas -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Current Score Display -->
+        <div id="currentScore">0</div>
+
+        <!-- Start Screen -->
+        <div id="startScreen">
+            <h1>🎮 Cyber Flappy 🎮</h1>
+            <div class="instructions">
+                Click or Press SPACE to jump<br> Navigate through the cyber city!<br> Avoid obstacles and set high scores!
+            </div>
+
+            <!-- Image Upload Options -->
+            <div style="background: rgba(255,255,255,0.9); padding: 20px; border-radius: 10px; margin: 20px;">
+                <div style="margin-bottom: 15px;">
+                    <label style="color: #333; font-weight: bold; display: block; margin-bottom: 5px;">
+                        Character Image:
+                    </label>
+                    <input type="file" id="characterInput" accept="image/*" style="font-size: 14px; padding: 5px;">
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="color: #333; font-weight: bold; display: block; margin-bottom: 5px;">
+                        Obstacle Image:
+                    </label>
+                    <input type="file" id="obstacleInput" accept="image/*" style="font-size: 14px; padding: 5px;">
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="color: #333; font-weight: bold; display: block; margin-bottom: 5px;">
+                        Jump Sound (plays when character jumps):
+                    </label>
+                    <input type="file" id="jumpSoundInput" accept="audio/*" style="font-size: 14px; padding: 5px;">
+                </div>
+
+                <div>
+                    <label style="color: #333; font-weight: bold; display: block; margin-bottom: 5px;">
+                        Hit Sound (plays when hitting obstacle):
+                    </label>
+                    <input type="file" id="hitSoundInput" accept="audio/*" style="font-size: 14px; padding: 5px;">
+                </div>
+            </div>
+
+            <button class="button" onclick="startGame()">Start Game</button>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen">
+            <h1>Game Over!</h1>
+            <div class="score">Score: <span id="finalScore">0</span></div>
+            <div class="score">Best: <span id="bestScore">0</span></div>
+            <button class="button" onclick="restartGame()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Generate city buildings dynamically
+        const skyline = document.getElementById('skyline');
+        const buildingCount = 30;
+
+        for (let i = 0; i < buildingCount; i++) {
+            const building = document.createElement('div');
+            building.className = 'building';
+
+            const width = Math.random() * 80 + 40;
+            const height = Math.random() * 250 + 100;
+            const left = (i * 120) + (Math.random() * 30);
+
+            building.style.width = width + 'px';
+            building.style.height = height + 'px';
+            building.style.left = left + 'px';
+
+            // Add windows
+            const windowRows = Math.floor(height / 25);
+            const windowCols = Math.floor(width / 15);
+
+            for (let row = 1; row < windowRows; row++) {
+                for (let col = 0; col < windowCols; col++) {
+                    if (Math.random() > 0.3) {
+                        const window = document.createElement('div');
+                        window.className = 'window';
+                        window.style.left = (col * 15 + 5) + 'px';
+                        window.style.top = (row * 25) + 'px';
+                        window.style.animationDelay = Math.random() * 3 + 's';
+                        building.appendChild(window);
+                    }
+                }
+            }
+
+            skyline.appendChild(building);
+        }
+
+        // Canvas setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 400;
+        canvas.height = 600;
+
+        // Game variables
+        let gameRunning = false;
+        let score = 0;
+        let bestScore = localStorage.getItem('flappyBestScore') || 0;
+        let frames = 0;
+
+        // Character image
+        const characterImg = new Image();
+        characterImg.src = 'character.png'; // Default - will be replaced by upload
+
+        // Obstacle/Pipe image
+        const obstacleImg = new Image();
+        obstacleImg.src = 'obstacle.png'; // Default - will be replaced by upload
+
+        // Sound effects
+        const jumpSound = new Audio();
+        const hitSound = new Audio();
+
+        // Track which images are uploaded
+        let characterUploaded = false;
+        let obstacleUploaded = false;
+
+        // Handle character image upload
+        document.getElementById('characterInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    characterImg.src = event.target.result;
+                    characterImg.onload = function() {
+                        characterUploaded = true;
+                        checkAndStartGame();
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle obstacle image upload
+        document.getElementById('obstacleInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    obstacleImg.src = event.target.result;
+                    obstacleImg.onload = function() {
+                        obstacleUploaded = true;
+                        checkAndStartGame();
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle jump sound upload
+        document.getElementById('jumpSoundInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    jumpSound.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle hit sound upload
+        document.getElementById('hitSoundInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    hitSound.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Start game only when BOTH images are uploaded
+        function checkAndStartGame() {
+            if (characterUploaded && obstacleUploaded) {
+                setTimeout(() => {
+                    startGame();
+                }, 300);
+            }
+        }
+
+        // Bird/Character object
+        const bird = {
+            x: 80,
+            y: 250,
+            width: 50,
+            height: 50,
+            velocity: 0,
+            gravity: 0.5,
+            jumpStrength: -9,
+            rotation: 0,
+            imageLoaded: false,
+
+            jump() {
+                this.velocity = this.jumpStrength;
+                // Play jump sound
+                if (jumpSound.src) {
+                    jumpSound.currentTime = 0; // Reset to start
+                    jumpSound.play().catch(e => console.log('Sound play failed:', e));
+                }
+            },
+
+            update() {
+                // Apply gravity
+                this.velocity += this.gravity;
+                this.y += this.velocity;
+
+                // Update rotation based on velocity (less rotation for character image)
+                this.rotation = Math.min(Math.max(this.velocity * 2, -20), 20);
+
+                // Check boundaries
+                if (this.y + this.height > canvas.height - 50) {
+                    this.y = canvas.height - 50 - this.height;
+                    gameOver();
+                }
+                if (this.y < 0) {
+                    this.y = 0;
+                    this.velocity = 0;
+                }
+            },
+
+            draw() {
+                ctx.save();
+
+                // Translate to character position
+                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                ctx.rotate(this.rotation * Math.PI / 180);
+
+                // Draw character image if loaded
+                if (characterImg.complete && characterImg.naturalHeight !== 0) {
+                    ctx.drawImage(characterImg, -this.width / 2, -this.height / 2, this.width, this.height);
+                } else {
+                    // Fallback: draw a simple placeholder
+                    ctx.fillStyle = '#4CAF50';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.width / 2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = 'white';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('IMG', 0, 4);
+                }
+
+                ctx.restore();
+            },
+
+            reset() {
+                this.y = 250;
+                this.velocity = 0;
+                this.rotation = 0;
+            }
+        };
+
+        // Check when image is loaded
+        characterImg.onload = function() {
+            bird.imageLoaded = true;
+        };
+
+        // Pipes array
+        let pipes = [];
+        const pipeWidth = 60;
+        const pipeGap = 150;
+        const pipeSpeed = 2.5;
+
+        function createPipe() {
+            const minHeight = 50;
+            const maxHeight = canvas.height - 200 - pipeGap;
+            const topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+
+            pipes.push({
+                x: canvas.width,
+                topHeight: topHeight,
+                bottomY: topHeight + pipeGap,
+                bottomHeight: canvas.height - 50 - (topHeight + pipeGap),
+                passed: false
+            });
+        }
+
+        function updatePipes() {
+            // Create new pipes
+            if (frames % 90 === 0) {
+                createPipe();
+            }
+
+            // Update and check pipes
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                pipes[i].x -= pipeSpeed;
+
+                // Check if bird passed pipe
+                if (!pipes[i].passed && pipes[i].x + pipeWidth < bird.x) {
+                    pipes[i].passed = true;
+                    score++;
+                    document.getElementById('currentScore').textContent = score;
+                }
+
+                // Remove off-screen pipes
+                if (pipes[i].x + pipeWidth < 0) {
+                    pipes.splice(i, 1);
+                }
+
+                // Check collision
+                if (checkCollision(pipes[i])) {
+                    gameOver();
+                }
+            }
+        }
+
+        function drawPipes() {
+            pipes.forEach(pipe => {
+                // Check if obstacle image is loaded
+                if (obstacleImg.complete && obstacleImg.naturalHeight !== 0) {
+                    // Draw top obstacle image (flipped upside down)
+                    ctx.save();
+                    ctx.translate(pipe.x + pipeWidth / 2, pipe.topHeight);
+                    ctx.scale(1, -1); // Flip vertically
+                    ctx.drawImage(obstacleImg, -pipeWidth / 2, 0, pipeWidth, pipe.topHeight);
+                    ctx.restore();
+
+                    // Draw bottom obstacle image
+                    ctx.drawImage(obstacleImg, pipe.x, pipe.bottomY, pipeWidth, pipe.bottomHeight);
+                } else {
+                    // Fallback: draw green pipes if image not loaded
+                    // Draw top pipe
+                    ctx.fillStyle = '#4CAF50';
+                    ctx.fillRect(pipe.x, 0, pipeWidth, pipe.topHeight);
+                    ctx.strokeStyle = '#2E7D32';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(pipe.x, 0, pipeWidth, pipe.topHeight);
+
+                    // Top pipe cap
+                    ctx.fillStyle = '#66BB6A';
+                    ctx.fillRect(pipe.x - 5, pipe.topHeight - 20, pipeWidth + 10, 20);
+                    ctx.strokeRect(pipe.x - 5, pipe.topHeight - 20, pipeWidth + 10, 20);
+
+                    // Draw bottom pipe
+                    ctx.fillStyle = '#4CAF50';
+                    ctx.fillRect(pipe.x, pipe.bottomY, pipeWidth, pipe.bottomHeight);
+                    ctx.strokeRect(pipe.x, pipe.bottomY, pipeWidth, pipe.bottomHeight);
+
+                    // Bottom pipe cap
+                    ctx.fillStyle = '#66BB6A';
+                    ctx.fillRect(pipe.x - 5, pipe.bottomY, pipeWidth + 10, 20);
+                    ctx.strokeRect(pipe.x - 5, pipe.bottomY, pipeWidth + 10, 20);
+                }
+            });
+        }
+
+        function checkCollision(pipe) {
+            const birdLeft = bird.x;
+            const birdRight = bird.x + bird.width;
+            const birdTop = bird.y;
+            const birdBottom = bird.y + bird.height;
+
+            const pipeLeft = pipe.x;
+            const pipeRight = pipe.x + pipeWidth;
+
+            // Check if bird is in pipe's x range
+            if (birdRight > pipeLeft && birdLeft < pipeRight) {
+                // Check if bird hits top or bottom pipe
+                if (birdTop < pipe.topHeight || birdBottom > pipe.bottomY) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function drawBackground() {
+            // Sky
+            ctx.fillStyle = '#4EC0CA';
+            ctx.fillRect(0, 0, canvas.width, canvas.height - 50);
+
+            // Ground
+            ctx.fillStyle = '#DED895';
+            ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+
+            // Ground detail
+            ctx.fillStyle = '#C4B454';
+            for (let i = 0; i < canvas.width; i += 30) {
+                ctx.fillRect(i - (frames % 30), canvas.height - 50, 20, 5);
+            }
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            frames++;
+
+            // Clear canvas
+            drawBackground();
+
+            // Update and draw
+            bird.update();
+            updatePipes();
+            drawPipes();
+            bird.draw();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameOverScreen').style.display = 'none';
+            document.getElementById('currentScore').style.display = 'block';
+
+            gameRunning = true;
+            score = 0;
+            frames = 0;
+            pipes = [];
+            bird.reset();
+            document.getElementById('currentScore').textContent = '0';
+
+            gameLoop();
+        }
+
+        function gameOver() {
+            if (!gameRunning) return;
+
+            gameRunning = false;
+
+            // Play hit sound
+            if (hitSound.src) {
+                hitSound.currentTime = 0; // Reset to start
+                hitSound.play().catch(e => console.log('Sound play failed:', e));
+            }
+
+            // Update best score
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('flappyBestScore', bestScore);
+            }
+
+            // Show game over screen
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('bestScore').textContent = bestScore;
+            document.getElementById('gameOverScreen').style.display = 'flex';
+        }
+
+        function restartGame() {
+            startGame();
+        }
+
+        // Input handlers
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && gameRunning) {
+                e.preventDefault();
+                bird.jump();
+            }
+        });
+
+        canvas.addEventListener('click', () => {
+            if (gameRunning) {
+                bird.jump();
+            }
+        });
+
+        // Initialize best score display
+        document.getElementById('bestScore').textContent = bestScore;
+    </script>
+</body>
+
+</html>
